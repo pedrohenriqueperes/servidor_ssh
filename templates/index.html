@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSH Web Terminal</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #terminal { width: 100%; height: 300px; background: black; color: white; overflow-y: scroll; padding: 10px; }
+        #command-input { width: 100%; }
+    </style>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">SSH Manager</h1>
+
+        <h2>Add a New SSH Connection</h2>
+        <form id="ssh-form" class="mb-4">
+            <div class="form-group">
+                <label for="ssh_host">Host:</label>
+                <input type="text" id="ssh_host" name="host" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="ssh_username">Username:</label>
+                <input type="text" id="ssh_username" name="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="ssh_password">Password:</label>
+                <input type="password" id="ssh_password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Connect</button>
+        </form>
+
+        <h2>Active SSH Connections</h2>
+        <ul id="connections" class="list-group mb-4">
+            <!-- Lista de conexões ativas será preenchida dinamicamente -->
+        </ul>
+
+        <h2>Add a New SSH Listener</h2>
+        <form action="/add_listener" method="post" class="mb-4">
+            <div class="form-group">
+                <label for="listener_host">Host:</label>
+                <input type="text" id="listener_host" name="host" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="listener_port">Port:</label>
+                <input type="text" id="listener_port" name="port" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="listener_username">Username:</label>
+                <input type="text" id="listener_username" name="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="listener_password">Password:</label>
+                <input type="password" id="listener_password" name="password" class="form-control" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add Listener</button>
+        </form>
+
+        <h2>Active SSH Listeners</h2>
+        <ul id="listeners" class="list-group mb-4">
+            <!-- Lista de listeners ativos será preenchida dinamicamente -->
+        </ul>
+
+        <h2>SSH Web Terminal</h2>
+        <div id="terminal"></div>
+        <input type="text" id="command-input" class="form-control mt-2" placeholder="Enter command" disabled>
+
+        <script>
+            var socket = io();
+            var terminal = document.getElementById('terminal');
+            var commandInput = document.getElementById('command-input');
+            var form = document.getElementById('ssh-form');
+
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                var host = document.getElementById('ssh_host').value;
+                var username = document.getElementById('ssh_username').value;
+                var password = document.getElementById('ssh_password').value;
+                socket.emit('start_ssh', {host: host, username: username, password: password});
+                commandInput.disabled = false;
+                form.style.display = 'none';
+            };
+
+            commandInput.onkeydown = function(e) {
+                if (e.key === 'Enter') {
+                    var command = commandInput.value;
+                    socket.emit('input', {command: command});
+                    commandInput.value = '';
+                }
+            };
+
+            socket.on('output', function(data) {
+                terminal.innerHTML += data.output + '<br>';
+                terminal.scrollTop = terminal.scrollHeight;
+            });
+        </script>
+    </div>
+</body>
+</html>
